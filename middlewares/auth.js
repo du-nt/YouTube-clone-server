@@ -17,4 +17,10 @@ const auth = (req, res, next) => {
   });
 };
 
-module.exports = { auth };
+const admin = (req, res, next) => {
+  if (req.user.adminRole) {
+    next();
+  } else return res.status(401).send("Denied!");
+};
+
+module.exports = { auth, admin };
