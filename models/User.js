@@ -30,6 +30,11 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "",
     },
+    cover: {
+      type: String,
+      default:
+        "https://media.istockphoto.com/vectors/vector-white-triangular-mosaic-texture-modern-low-poly-background-vector-id1200558861?b=1&k=6&m=1200558861&s=612x612&w=0&h=tEcC_NMFGARPnTQOxXYobgdAyVWvVYDRuK4-7_ZbEds=",
+    },
     adminRole: {
       type: Boolean,
       default: false,

@@ -10,8 +10,12 @@ router.post("/editUser", auth, userControllers.editUser);
 
 router.post("/changePhoto", auth, userControllers.changePhoto);
 
-router.get("/removePhoto", auth, userControllers.removePhoto);
+router.post("/changeCover", auth, userControllers.changeCover);
 
-router.get("/user/:userName",auth, userControllers.getProfile);
+router.get("/:userName", userControllers.getProfile);
+
+router.get("/:userId/toggleSubscribe", auth, userControllers.toggleSubscribe);
+
+router.get("/:userId/videos", userControllers.getUserVideos);
 
 module.exports = router;

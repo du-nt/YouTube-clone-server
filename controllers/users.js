@@ -2,59 +2,53 @@ const formidable = require("formidable");
 const { upload } = require("../utils/helper");
 
 const User = require("../models/User");
+const Subscriber = require("../models/Subscriber");
+const Video = require("../models/Video");
 
 const getProfile = async (req, res) => {
-  const user = await User.findOne({ userName: req.params.userName })
-    .select("-password -token")
-    .populate({ path: "posts", select: "filePaths commentsCount likesCount" })
-    .populate({
-      path: "savedPosts",
-      select: "filePaths commentsCount likesCount",
-    })
-    .populate({ path: "followers", select: "avatar userName displayName" })
-    .populate({ path: "following", select: "avatar userName displayName" })
-    .lean()
-    .exec();
+  try {
+    const user = await User.findOne({ userName: req.params.userName })
+      .select("displayName avatar cover")
+      .lean()
+      .exec();
 
-  if (!user) {
-    return res.status(404).json({
-      error: `The user ${req.params.userName} is not found`,
+    if (!user) {
+      return res.status(404).json({
+        error: `The user ${req.params.userName} is not found`,
+      });
+    }
+
+    const otherSubscribe = await Subscriber.find({
+      userTo: user._id.toString(),
     });
-  }
 
-  res.json(user);
+    user.subscribersCount = otherSubscribe.length;
+
+    if (req.query.lgId) {
+      const subscribe = await Subscriber.find({
+        userTo: user._id.toString(),
+        userFrom: req.query.lgId,
+      });
+
+      user.isMe = user._id.toString() === req.query.lgId;
+      user.isSubscribed = subscribe.length > 0;
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(400).send(err);
+  }
 };
 
 const editUser = async (req, res) => {
-  const { userName, email } = req.body;
-
-  const existUser = await User.findOne({
-    email,
-    _id: { $ne: req.user.id },
-  }).exec();
-  const existUser1 = await User.findOne({
-    userName,
-    _id: { $ne: req.user.id },
-  }).exec();
-  if (existUser || existUser1) {
-    let errors = {};
-    if (existUser) {
-      errors.email = "Email was used";
-    }
-    if (existUser1) {
-      errors.userName = "Username was used";
-    }
-    return res.status(404).json(errors);
-  }
-
-  const user = await User.findByIdAndUpdate(
+  await User.findByIdAndUpdate(
     req.user.id,
     { $set: req.body },
     {
       new: true,
     }
   );
-  res.json(user);
+  res.json({ success: true });
 };
 
 const changePhoto = async (req, res) => {
@@ -85,20 +79,69 @@ const changePhoto = async (req, res) => {
   });
 };
 
-const removePhoto = async (req, res) => {
-  const { avatar } = await User.findByIdAndUpdate(
-    req.user.id,
-    {
-      $set: {
-        avatar:
-          "https://res.cloudinary.com/douy56nkf/image/upload/v1594060920/defaults/txxeacnh3vanuhsemfc8.png",
-      },
-    },
-    {
-      new: true,
+const changeCover = async (req, res) => {
+  const form = formidable();
+
+  form.parse(req, (err, fields, file) => {
+    if (err) {
+      return res.status(404).json({ error: "Errored" });
     }
+    if (file) {
+      upload(file.file, "cover")
+        .then(async (url) => {
+          const { cover } = await User.findByIdAndUpdate(
+            req.user.id,
+            { $set: { cover: url } },
+            {
+              new: true,
+            }
+          );
+          res.json({ cover });
+        })
+        .catch((err) =>
+          res.status(404).json({ success: false, error: err.message })
+        );
+    } else {
+      res.status(404).json({ error: "No image provided" });
+    }
+  });
+};
+
+const toggleSubscribe = async (req, res) => {
+  try {
+    if (req.params.userId === req.user.id) {
+      return res.status(404).json({ error: "You can't subscribe yourself" });
+    }
+
+    const subscribe = await Subscriber.findOne({
+      userTo: req.params.userId,
+      userFrom: req.user.id,
+    });
+
+    if (!subscribe) {
+      const newSubscribe = new Subscriber({
+        userTo: req.params.userId,
+        userFrom: req.user.id,
+      });
+      await newSubscribe.save();
+    } else {
+      await Subscriber.findOneAndDelete({
+        userTo: req.params.userId,
+        userFrom: req.user.id,
+      });
+    }
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(400).json({ success: false });
+  }
+};
+
+const getUserVideos = async (req, res) => {
+  const videos = await Video.find({ author: req.params.userId }).select(
+    "title thumbnail views duration createdAt"
   );
-  res.json({ avatar });
+  res.json(videos);
 };
 
 const searchUser = async (req, res) => {
@@ -117,6 +160,8 @@ module.exports = {
   getProfile,
   editUser,
   changePhoto,
-  removePhoto,
+  changeCover,
+  toggleSubscribe,
+  getUserVideos,
   searchUser,
 };

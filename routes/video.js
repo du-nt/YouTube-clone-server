@@ -6,4 +6,12 @@ const videoController = require("../controllers/video");
 
 router.post("/adminUpload", auth, admin, videoController.adminUpload);
 
+router.get("/recommendedVideos", videoController.recommendedVideos);
+
+router.get(
+  "/getSubscriptionVideos",
+  auth,
+  videoController.getSubscriptionVideos
+);
+
 module.exports = router;
