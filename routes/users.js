@@ -18,4 +18,10 @@ router.get("/:userId/toggleSubscribe", auth, userControllers.toggleSubscribe);
 
 router.get("/:userId/videos", userControllers.getUserVideos);
 
+router.get(
+  "/channel/subscribedUsers",
+  auth,
+  userControllers.getSubscribedUsers
+);
+
 module.exports = router;

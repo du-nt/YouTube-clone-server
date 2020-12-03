@@ -144,6 +144,13 @@ const getUserVideos = async (req, res) => {
   res.json(videos);
 };
 
+const getSubscribedUsers = async (req, res) => {
+  const users = await Subscriber.find({ userFrom: req.user.id })
+    .select("userTo")
+    .populate({ path: "userTo", select: " avatar userName displayName" });
+  res.status(200).json(users);
+};
+
 const searchUser = async (req, res) => {
   if (!req.query.userName) {
     return res.status(404).json({ message: "The username cannot be empty" });
@@ -163,5 +170,6 @@ module.exports = {
   changeCover,
   toggleSubscribe,
   getUserVideos,
+  getSubscribedUsers,
   searchUser,
 };
