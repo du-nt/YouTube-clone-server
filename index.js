@@ -10,6 +10,7 @@ require("dotenv").config();
 const port = process.env.PORT || 8000;
 
 const url = "https://youtube-clone-client.herokuapp.com/";
+const url2 = "https://instagram-clone-byyaokaoya.herokuapp.com/";
 const time = 10;
 // app.use(cors());
 app.use(
@@ -41,5 +42,6 @@ app.use("/api/auth", require("./routes/auth"));
 
 app.listen(port, () => {
   herokuAwake(url, time);
+  herokuAwake(url2, time);
   console.log(`App listening on port ${port}!`);
 });
