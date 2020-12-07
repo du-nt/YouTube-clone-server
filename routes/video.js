@@ -22,4 +22,6 @@ router.get("/like/:videoId", auth, videoController.like);
 
 router.get("/dislike/:videoId", auth, videoController.dislike);
 
+router.get("/upView/:videoId", videoController.upView);
+
 module.exports = router;

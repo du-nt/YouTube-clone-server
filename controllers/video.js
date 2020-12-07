@@ -170,6 +170,22 @@ const dislike = async (req, res) => {
   res.json({ success: true });
 };
 
+const upView = async (req, res) => {
+  const video = await Video.findById(req.params.videoId);
+
+  if (!video) {
+    return res
+      .status(404)
+      .json({ error: `No video found for ID - ${req.params.videoId}` });
+  }
+
+  await video.updateOne({
+    $inc: { views: 1 },
+  });
+
+  res.json({ success: true });
+};
+
 module.exports = {
   adminUpload,
   recommendedVideos,
@@ -178,4 +194,5 @@ module.exports = {
   getRelatedVideos,
   like,
   dislike,
+  upView,
 };
