@@ -2,12 +2,16 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
+const { AwakeHeroku } = require("awake-heroku");
 const cors = require("cors");
 const app = express();
 
 require("dotenv").config();
 const port = process.env.PORT || 8000;
 
+AwakeHeroku.add({
+  url: "https://youtube-clone-client.herokuapp.com/",
+});
 // app.use(cors());
 app.use(
   cors({
