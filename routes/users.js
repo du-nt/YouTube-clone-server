@@ -4,7 +4,7 @@ const router = express.Router();
 const { auth } = require("../middlewares/auth");
 const userControllers = require("../controllers/users");
 
-router.get("/search", userControllers.searchUser);
+router.get("/search", userControllers.search);
 
 router.post("/editUser", auth, userControllers.editUser);
 

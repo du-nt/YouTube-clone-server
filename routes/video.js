@@ -14,4 +14,12 @@ router.get(
   videoController.getSubscriptionVideos
 );
 
+router.get("/:videoId", videoController.getVideo);
+
+router.post("/relatedVideos", videoController.getRelatedVideos);
+
+router.get("/like/:videoId", auth, videoController.like);
+
+router.get("/dislike/:videoId", auth, videoController.dislike);
+
 module.exports = router;

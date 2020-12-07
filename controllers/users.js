@@ -147,20 +147,46 @@ const getUserVideos = async (req, res) => {
 const getSubscribedUsers = async (req, res) => {
   const users = await Subscriber.find({ userFrom: req.user.id })
     .select("userTo")
-    .populate({ path: "userTo", select: " avatar userName displayName" });
+    .populate({ path: "userTo", select: " avatar userName displayName" })
+    .lean()
+    .exec();
   res.status(200).json(users);
 };
 
-const searchUser = async (req, res) => {
-  if (!req.query.userName) {
-    return res.status(404).json({ message: "The username cannot be empty" });
+const search = async (req, res) => {
+  if (!req.query.q) {
+    return res.status(404).json({ message: "The search term cannot be empty" });
   }
-  const regex = new RegExp(req.query.userName, "i");
-  const users = await User.find({
-    $or: [{ userName: regex }, { displayName: regex }],
-  });
+  const regex = new RegExp(req.query.q, "i");
 
-  res.json(users);
+  const results = await Promise.all([
+    User.find({
+      $or: [{ userName: regex }, { displayName: regex }],
+    })
+      .select("displayName avatar userName")
+      .lean()
+      .exec(),
+    Video.find({ title: regex })
+      .select("author title thumbnail views duration createdAt")
+      .populate({ path: "author", select: "displayName" })
+      .lean()
+      .exec(),
+    ,
+  ]);
+
+  if (!results[0].length) return res.json({ users: [], videos: results[1] });
+
+  results[0].forEach(async (user, index) => {
+    user.subscribersCount = await Subscriber.countDocuments({
+      userTo: user._id.toString(),
+    });
+    user.videosCount = await Video.countDocuments({
+      author: user._id.toString(),
+    });
+    if (index === results[0].length - 1) {
+      res.json({ users: results[0], videos: results[1] });
+    }
+  });
 };
 
 module.exports = {
@@ -171,5 +197,5 @@ module.exports = {
   toggleSubscribe,
   getUserVideos,
   getSubscribedUsers,
-  searchUser,
+  search,
 };
