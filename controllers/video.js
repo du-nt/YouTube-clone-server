@@ -30,6 +30,7 @@ const recommendedVideos = async (req, res) => {
   const videos = await Video.find()
     .select(" -url -description -subtitle -updatedAt -__v")
     .populate({ path: "author", select: " avatar userName displayName" })
+    .sort("-createdAt")
     .lean()
     .exec();
   res.json(videos);
@@ -46,7 +47,8 @@ const getSubscriptionVideos = async (req, res) => {
 
   const videos = await Video.find({ author: { $in: subscribedUsers } })
     .select(" -url -description -subtitle -updatedAt -__v")
-    .populate({ path: "author", select: " avatar userName displayName" });
+    .populate({ path: "author", select: " avatar userName displayName" })
+    .sort("-createdAt");
 
   const sixSubscribedUsers = subscribers
     .slice(0, 7)
@@ -102,6 +104,7 @@ const getRelatedVideos = async (req, res) => {
     .limit(12)
     .select(" -url -description -subtitle -updatedAt -createdAt -__v")
     .populate({ path: "author", select: "displayName" })
+    .sort("-createdAt")
     .lean()
     .exec();
   res.json(videos);

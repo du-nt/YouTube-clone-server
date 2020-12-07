@@ -138,9 +138,9 @@ const toggleSubscribe = async (req, res) => {
 };
 
 const getUserVideos = async (req, res) => {
-  const videos = await Video.find({ author: req.params.userId }).select(
-    "title thumbnail views duration createdAt"
-  );
+  const videos = await Video.find({ author: req.params.userId })
+    .select("title thumbnail views duration createdAt")
+    .sort("-createdAt");
   res.json(videos);
 };
 
