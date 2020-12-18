@@ -1,34 +1,17 @@
 const mongoose = require("mongoose");
 
-const videoSchema = mongoose.Schema(
+const commentSchema = mongoose.Schema(
   {
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
-    title: {
+    videoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Video",
+    },
+    text: {
       type: String,
-      trim: true,
-    },
-    url: {
-      type: String,
-    },
-    subtitle: {
-      type: String,
-    },
-    description: {
-      type: String,
-    },
-    duration: {
-      type: String,
-    },
-    thumbnail: {
-      type: String,
-    },
-    views: {
-      type: Number,
-      default: 0,
     },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     likesCount: {
@@ -48,4 +31,4 @@ const videoSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Video", videoSchema);
+module.exports = mongoose.model("Comment", commentSchema);

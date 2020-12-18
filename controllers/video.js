@@ -3,6 +3,8 @@ const { getVideoDurationInSeconds } = require("get-video-duration");
 const { secondsToHms } = require("../utils/convertTime");
 const Video = require("../models/Video");
 const Subscriber = require("../models/Subscriber");
+const Comment = require("../models/Comment");
+const Reply = require("../models/Reply");
 
 const adminUpload = async (req, res) => {
   try {
@@ -77,6 +79,12 @@ const getVideo = async (req, res) => {
     video.subscribersCount = await Subscriber.countDocuments({
       userTo: video.author._id.toString(),
     });
+
+    if (video.commentsCount > 0) {
+      video.firstComment = await Comment.findOne({ videoId: video._id })
+        .select("text author")
+        .populate({ path: "author", select: " avatar displayName" });
+    }
 
     if (req.query.lgId) {
       video.isMe = video.author._id.toString() === req.query.lgId;
@@ -186,6 +194,113 @@ const upView = async (req, res) => {
   res.json({ success: true });
 };
 
+const addComment = async (req, res) => {
+  try {
+    const newComment = Comment({
+      text: req.body.text,
+      author: req.user.id,
+      videoId: req.body._id,
+    });
+    await newComment.save();
+
+    await Video.findByIdAndUpdate(req.body._id, {
+      $inc: { commentsCount: 1 },
+    });
+
+    await newComment
+      .populate({
+        path: "author",
+        select: " avatar userName displayName",
+      })
+      .execPopulate();
+    res.json(newComment);
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const getComments = async (req, res) => {
+  try {
+    const comments = await Comment.find({
+      videoId: req.params.videoId,
+    })
+      .populate({ path: "author", select: " avatar userName displayName" })
+      .sort("-createdAt");
+    res.json(comments);
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const addReply = async (req, res) => {
+  try {
+    const newReply = Reply({
+      text: req.body.text,
+      author: req.user.id,
+      commentId: req.body._id,
+      responseTo: req.body.responseTo,
+    });
+    await newReply.save();
+
+    await Comment.findByIdAndUpdate(req.body._id, {
+      $inc: { commentsCount: 1 },
+    });
+
+    await newReply
+      .populate([
+        {
+          path: "author",
+          select: " avatar userName displayName",
+        },
+        { path: "responseTo", select: " userName displayName" },
+      ])
+      .execPopulate();
+    res.json(newReply);
+  } catch (error) {
+    console.log(error);
+    res.status(404).json({ success: false });
+  }
+};
+
+const getReplies = async (req, res) => {
+  try {
+    const replies = await Reply.find({
+      commentId: req.params.commentId,
+    }).populate([
+      { path: "author", select: " avatar userName displayName" },
+      { path: "responseTo", select: " userName displayName" },
+    ]);
+    res.json(replies);
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const deleteReply = async (req, res) => {
+  try {
+    const reply = await Reply.findByIdAndDelete(req.params.replyId);
+    await Comment.findByIdAndUpdate(reply.commentId, {
+      $inc: { commentsCount: -1 },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const deleteComment = async (req, res) => {
+  try {
+    const comment = await Comment.findByIdAndDelete(req.params.commentId);
+    await Reply.deleteMany({ commentId: req.params.commentId });
+    await Video.findByIdAndUpdate(comment.videoId, {
+      $inc: { commentsCount: -1 },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
 module.exports = {
   adminUpload,
   recommendedVideos,
@@ -195,4 +310,10 @@ module.exports = {
   like,
   dislike,
   upView,
+  addComment,
+  getComments,
+  addReply,
+  getReplies,
+  deleteReply,
+  deleteComment,
 };
