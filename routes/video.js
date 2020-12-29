@@ -6,6 +6,8 @@ const videoController = require("../controllers/video");
 
 router.post("/adminUpload", auth, admin, videoController.adminUpload);
 
+router.post("/upload", auth, videoController.uploadVideo);
+
 router.get("/recommendedVideos", videoController.recommendedVideos);
 
 router.get(
@@ -35,5 +37,13 @@ router.post("/addReply", auth, videoController.addReply);
 router.get("/getReplies/:commentId", videoController.getReplies);
 
 router.get("/deleteReply/:replyId", auth, videoController.deleteReply);
+
+router.get("/likeComment/:commentId", auth, videoController.likeComment);
+
+router.get("/dislikeComment/:commentId", auth, videoController.dislikeComment);
+
+router.get("/likeReply/:replyId", auth, videoController.likeReply);
+
+router.get("/dislikeReply/:replyId", auth, videoController.dislikeReply);
 
 module.exports = router;

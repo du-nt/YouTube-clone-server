@@ -1,4 +1,6 @@
 const { getVideoDurationInSeconds } = require("get-video-duration");
+const formidable = require("formidable");
+const { upload_large } = require("../utils/helper");
 
 const { secondsToHms } = require("../utils/convertTime");
 const Video = require("../models/Video");
@@ -25,6 +27,7 @@ const adminUpload = async (req, res) => {
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(400).json({ success: false });
+    console.log(error);
   }
 };
 
@@ -77,7 +80,11 @@ const getVideo = async (req, res) => {
     }
 
     video.subscribersCount = await Subscriber.countDocuments({
-      userTo: video.author._id.toString(),
+      userTo: video.author._id,
+    });
+
+    video.commentsCount = await Comment.countDocuments({
+      videoId: video._id,
     });
 
     if (video.commentsCount > 0) {
@@ -203,16 +210,13 @@ const addComment = async (req, res) => {
     });
     await newComment.save();
 
-    await Video.findByIdAndUpdate(req.body._id, {
-      $inc: { commentsCount: 1 },
-    });
-
     await newComment
       .populate({
         path: "author",
         select: " avatar userName displayName",
       })
       .execPopulate();
+
     res.json(newComment);
   } catch (error) {
     res.status(404).json({ success: false });
@@ -225,7 +229,24 @@ const getComments = async (req, res) => {
       videoId: req.params.videoId,
     })
       .populate({ path: "author", select: " avatar userName displayName" })
-      .sort("-createdAt");
+      .sort("-createdAt")
+      .lean()
+      .exec();
+
+    for (const comment of comments) {
+      comment.commentsCount = await Reply.countDocuments({
+        commentId: comment._id,
+      });
+      if (req.query.lgId) {
+        comment.isLiked = comment.likes.some(
+          (like) => like.toString() === req.query.lgId
+        );
+        comment.isDisliked = comment.dislikes.some(
+          (dislike) => dislike.toString() === req.query.lgId
+        );
+      }
+    }
+
     res.json(comments);
   } catch (error) {
     res.status(404).json({ success: false });
@@ -241,10 +262,6 @@ const addReply = async (req, res) => {
       responseTo: req.body.responseTo,
     });
     await newReply.save();
-
-    await Comment.findByIdAndUpdate(req.body._id, {
-      $inc: { commentsCount: 1 },
-    });
 
     await newReply
       .populate([
@@ -266,10 +283,25 @@ const getReplies = async (req, res) => {
   try {
     const replies = await Reply.find({
       commentId: req.params.commentId,
-    }).populate([
-      { path: "author", select: " avatar userName displayName" },
-      { path: "responseTo", select: " userName displayName" },
-    ]);
+    })
+      .populate([
+        { path: "author", select: " avatar userName displayName" },
+        { path: "responseTo", select: " userName displayName" },
+      ])
+      .lean()
+      .exec();
+
+    if (req.query.lgId) {
+      replies.forEach((reply) => {
+        reply.isLiked = reply.likes.some(
+          (like) => like.toString() === req.query.lgId
+        );
+        reply.isDisliked = reply.dislikes.some(
+          (dislike) => dislike.toString() === req.query.lgId
+        );
+      });
+    }
+
     res.json(replies);
   } catch (error) {
     res.status(404).json({ success: false });
@@ -278,10 +310,8 @@ const getReplies = async (req, res) => {
 
 const deleteReply = async (req, res) => {
   try {
-    const reply = await Reply.findByIdAndDelete(req.params.replyId);
-    await Comment.findByIdAndUpdate(reply.commentId, {
-      $inc: { commentsCount: -1 },
-    });
+    await Reply.findByIdAndDelete(req.params.replyId);
+
     res.json({ success: true });
   } catch (error) {
     res.status(404).json({ success: false });
@@ -290,14 +320,182 @@ const deleteReply = async (req, res) => {
 
 const deleteComment = async (req, res) => {
   try {
-    const comment = await Comment.findByIdAndDelete(req.params.commentId);
+    await Comment.findByIdAndDelete(req.params.commentId);
     await Reply.deleteMany({ commentId: req.params.commentId });
-    await Video.findByIdAndUpdate(comment.videoId, {
-      $inc: { commentsCount: -1 },
-    });
+
     res.json({ success: true });
   } catch (error) {
     res.status(404).json({ success: false });
+  }
+};
+
+const likeComment = async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+
+    if (comment.likes.includes(req.user.id)) {
+      await comment.updateOne({
+        $pull: { likes: req.user.id },
+        $inc: { likesCount: -1 },
+      });
+    } else if (comment.dislikes.includes(req.user.id)) {
+      await comment.updateOne({
+        $push: { likes: req.user.id },
+        $pull: { dislikes: req.user.id },
+        $inc: { likesCount: 1, dislikesCount: -1 },
+      });
+    } else {
+      await comment.updateOne({
+        $push: { likes: req.user.id },
+        $inc: { likesCount: 1 },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const dislikeComment = async (req, res) => {
+  try {
+    const comment = await Comment.findById(req.params.commentId);
+
+    if (comment.dislikes.includes(req.user.id)) {
+      await comment.updateOne({
+        $pull: { dislikes: req.user.id },
+        $inc: { dislikesCount: -1 },
+      });
+    } else if (comment.likes.includes(req.user.id)) {
+      await comment.updateOne({
+        $push: { dislikes: req.user.id },
+        $pull: { likes: req.user.id },
+        $inc: { dislikesCount: 1, likesCount: -1 },
+      });
+    } else {
+      await comment.updateOne({
+        $push: { dislikes: req.user.id },
+        $inc: { dislikesCount: 1 },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const likeReply = async (req, res) => {
+  try {
+    const reply = await Reply.findById(req.params.replyId);
+
+    if (reply.likes.includes(req.user.id)) {
+      await reply.updateOne({
+        $pull: { likes: req.user.id },
+        $inc: { likesCount: -1 },
+      });
+    } else if (reply.dislikes.includes(req.user.id)) {
+      await reply.updateOne({
+        $push: { likes: req.user.id },
+        $pull: { dislikes: req.user.id },
+        $inc: { likesCount: 1, dislikesCount: -1 },
+      });
+    } else {
+      await reply.updateOne({
+        $push: { likes: req.user.id },
+        $inc: { likesCount: 1 },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+const dislikeReply = async (req, res) => {
+  try {
+    const reply = await Reply.findById(req.params.replyId);
+
+    if (reply.dislikes.includes(req.user.id)) {
+      await reply.updateOne({
+        $pull: { dislikes: req.user.id },
+        $inc: { dislikesCount: -1 },
+      });
+    } else if (reply.likes.includes(req.user.id)) {
+      await reply.updateOne({
+        $push: { dislikes: req.user.id },
+        $pull: { likes: req.user.id },
+        $inc: { dislikesCount: 1, likesCount: -1 },
+      });
+    } else {
+      await reply.updateOne({
+        $push: { dislikes: req.user.id },
+        $inc: { dislikesCount: 1 },
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(404).json({ success: false });
+  }
+};
+
+// const uploadVideo = async (req, res) => {
+//   const form = formidable();
+//   form.parse(req, (err, fields, file) => {
+//     if (err) {
+//       return res.status(404).json({ error: "Errored" });
+//     }
+//     if (file) {
+//       upload_large(file.files, "uploadedVideos")
+//         .then(async ({ url, seconds }) => {
+//           const duration = secondsToHms(seconds);
+//           const ext = url.split(".").pop();
+//           const thumbnail = url.replace(ext, "jpg");
+
+//           const newVideo = new Video({
+//             ...fields,
+//             author: req.user._id,
+//             url,
+//             duration,
+//             thumbnail,
+//           });
+
+//           await newVideo.save();
+
+//           res.status(200).json(newVideo);
+//         })
+//         .catch((err) => {
+//           res.status(404).json({ success: false, error: err.message });
+//           console.log(err);
+//         });
+//     } else {
+//       res.status(404).json({ error: "No video provided" });
+//     }
+//   });
+// };
+
+const uploadVideo = async (req, res) => {
+  try {
+    const seconds = await getVideoDurationInSeconds(req.body.url);
+    const duration = secondsToHms(seconds);
+
+    const ext = req.body.url.split(".").pop();
+    const thumbnail = req.body.url.replace(ext, "jpg");
+
+    const newVideo = new Video({
+      ...req.body,
+      author: req.user._id,
+      duration,
+      thumbnail,
+    });
+
+    await newVideo.save();
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(400).json({ success: false });
+    console.log(error);
   }
 };
 
@@ -316,4 +514,9 @@ module.exports = {
   getReplies,
   deleteReply,
   deleteComment,
+  likeComment,
+  dislikeComment,
+  likeReply,
+  dislikeReply,
+  uploadVideo,
 };

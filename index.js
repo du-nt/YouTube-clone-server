@@ -35,6 +35,7 @@ app.get("/", (req, res) => res.send("Hello World!"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/video", require("./routes/video"));
 app.use("/api/auth", require("./routes/auth"));
+app.use("/api/admin", require("./routes/admin"));
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}!`);

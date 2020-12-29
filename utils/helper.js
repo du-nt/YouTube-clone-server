@@ -25,6 +25,24 @@ const upload = (file, folder) => {
   });
 };
 
+const upload_large = (file, folder) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_large(
+      file.path,
+      { resource_type: "video", folder },
+      (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          const { secure_url, duration } = result;
+          return resolve({ url: secure_url, seconds: duration });
+        }
+      }
+    );
+  });
+};
+
 module.exports = {
   upload,
+  upload_large,
 };
