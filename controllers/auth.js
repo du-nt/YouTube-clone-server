@@ -72,7 +72,10 @@ const login = (req, res) => {
             return res.status(403).json({ success: false, error: err.message });
           }
           res
-            .cookie("jwt_auth", user.token, { httpOnly: true })
+            .cookie("jwt_auth", user.token, {
+              httpOnly: true,
+              sameSite: "none",
+            })
             .status(200)
             .json({ success: true });
         });
