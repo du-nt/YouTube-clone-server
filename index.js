@@ -13,7 +13,10 @@ app.use(
   cors({
     sameSite: "none",
     credentials: true,
-    origin: "http://localhost:3000/",
+    origin: [
+      "http://localhost:3000/",
+      "https://youtubeclone-yaokaoya.netlify.app/",
+    ],
   })
 );
 
