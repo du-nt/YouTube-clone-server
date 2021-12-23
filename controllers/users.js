@@ -7,14 +7,14 @@ const Video = require("../models/Video");
 
 const getProfile = async (req, res) => {
   try {
-    const user = await User.findOne({ userName: req.params.userName })
+    const user = await User.findOne({ _id: req.params.userId })
       .select("displayName avatar cover")
       .lean()
       .exec();
 
     if (!user) {
       return res.status(404).json({
-        error: `The user ${req.params.userName} is not found`,
+        error: `The user ${req.params.userId} is not found`,
       });
     }
 
@@ -36,7 +36,7 @@ const getProfile = async (req, res) => {
 
     res.json(user);
   } catch (error) {
-    res.status(400).send(err);
+    res.status(400).send(error);
   }
 };
 
@@ -147,7 +147,7 @@ const getUserVideos = async (req, res) => {
 const getSubscribedUsers = async (req, res) => {
   const users = await Subscriber.find({ userFrom: req.user.id })
     .select("userTo")
-    .populate({ path: "userTo", select: " avatar userName displayName" })
+    .populate({ path: "userTo", select: " avatar displayName" })
     .lean()
     .exec();
   res.status(200).json(users);
@@ -161,9 +161,9 @@ const search = async (req, res) => {
 
   const results = await Promise.all([
     User.find({
-      $or: [{ userName: regex }, { displayName: regex }],
+      $or: [{ displayName: regex }],
     })
-      .select("displayName avatar userName")
+      .select("displayName avatar")
       .lean()
       .exec(),
     Video.find({ title: regex })

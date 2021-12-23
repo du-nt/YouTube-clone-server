@@ -11,14 +11,6 @@ module.exports = (data) => {
 		errors.email = "Email is invalid";
 	}
 
-	if (Validator.isEmpty(data.userName)) {
-		errors.userName = "Username field is required";
-	}
-
-	if (!Validator.isLength(data.userName, { min: 8, max: 30 })) {
-		errors.userName = "Username must between 8 and 30 characters";
-	}
-
 	if (Validator.isEmpty(data.displayName)) {
 		errors.displayName = "Display name field is required";
 	}

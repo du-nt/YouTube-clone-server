@@ -1,26 +1,33 @@
-const User = require("../models/User");
-
-const auth = (req, res, next) => {
-  let token = req.cookies.jwt_auth;
-  if (!token)
+const isLogged = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  } else {
     return res.status(401).json({
       isAuth: false,
+      error: "Not permitted",
     });
-  User.findByToken(token, (err, user) => {
-    if (!user)
-      return res.status(401).json({
-        isAuth: false,
-      });
-    req.token = token;
-    req.user = user;
-    next();
-  });
+  }
 };
 
-const admin = (req, res, next) => {
-  if (req.user.adminRole) {
+const isNotLogged = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return res.status(404).json({
+      error: "You're logged in",
+    });
+  } else {
     next();
-  } else return res.status(401).send("Denied!");
+  }
 };
 
-module.exports = { auth, admin };
+const isAdmin = (req, res, next) => {
+  if (!req.user.isAdmin) {
+    return res.status(401).json({
+      isAuth: false,
+      error: "Only admin user can do this",
+    });
+  }
+  next();
+};
+
+
+module.exports = { isLogged, isAdmin, isNotLogged };

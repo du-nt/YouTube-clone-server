@@ -1,6 +1,8 @@
 const jwt = require("jsonwebtoken");
+const passport = require("passport");
 
 const User = require("../models/User");
+const Subscriber = require("../models/Subscriber");
 
 const validateRegisterInput = require("../validations/register");
 const validateLoginInput = require("../validations/login");
@@ -9,7 +11,21 @@ const validateResetPassword = require("../validations/resetPassword");
 const { transporter, resetPasswordTemplate } = require("../utils/nodemail");
 
 const auth = async (req, res) => {
-  res.status(200).json(req.user);
+  const subscribedUsers = await Subscriber.find({ userFrom: req.user.id })
+    .select("userTo")
+    .populate({ path: "userTo", select: " avatar displayName" })
+    .lean()
+    .exec();
+
+  res.status(200).json({
+    _id: req.user._id,
+    isAdmin: req.user.isAdmin,
+    email: req.user.email,
+    displayName: req.user.displayName,
+    avatar: req.user.avatar,
+    cover: req.user.cover,
+    subscribedUsers
+  });
 };
 
 const register = async (req, res) => {
@@ -19,116 +35,113 @@ const register = async (req, res) => {
     if (!isValid) {
       return res.status(404).json(errors);
     }
-    const { email, userName, displayName, password } = req.body;
+    const { email, displayName, password } = req.body;
     const user = await User.findOne({ email }).exec();
-    const user1 = await User.findOne({ userName }).exec();
-    if (user || user1) {
-      if (user) {
-        errors.email = "Email was used";
-      }
-      if (user1) {
-        errors.userName = "Username was used";
-      }
-      return res.status(404).json(errors);
+    if (user) {
+      return res.status(404).json({ email: "Email was used" });
     }
     const newUser = new User({
-      userName,
       displayName,
       email,
       password,
     });
     await newUser.save();
     res.status(200).json({
-      success: true,
+      registerSuccess: true,
     });
   } catch (err) {
-    res.status(404).json({ success: false, error: err.message });
+    res.status(404).json({ registerSuccess: false, error: err.message });
   }
 };
 
-const login = (req, res) => {
-  try {
-    const { errors, isValid } = validateLoginInput(req.body);
+const login = (req, res, next) => {
+  const { errors, isValid } = validateLoginInput(req.body);
 
-    if (!isValid) {
-      return res.status(404).json(errors);
+  if (!isValid) {
+    return res.status(404).json(errors);
+  }
+
+  passport.authenticate("local", async(err, user, info) => {
+    if (err) {
+      return next(err);
     }
 
-    User.findOne({ email: req.body.email }, (err, user) => {
-      if (!user) {
-        errors.email = "Email not found";
-        return res.status(404).json(errors);
+    if (!user) {
+      return res.status(404).json(info);
+    }
+
+    const subscribedUsers = await Subscriber.find({ userFrom: user.id })
+    .select("userTo")
+    .populate({ path: "userTo", select: " avatar displayName" })
+    .lean()
+    .exec();
+
+    req.logIn(user, function (err) {
+      if (err) {
+        return next(err);
       }
-      user.comparePassword(req.body.password, (err, isMatch) => {
-        if (err) {
-          return res.status(404).json({ success: false, error: err.message });
-        }
-        if (!isMatch) {
-          errors.password = "Password is incorrect";
-          return res.status(404).json(errors);
-        }
-        user.generateToken((err, user) => {
-          if (err) {
-            return res.status(403).json({ success: false, error: err.message });
-          }
-          res
-            .cookie("jwt_auth", user.token, {
-              httpOnly: true,
-              sameSite: "none",
-            })
-            .status(200)
-            .json({ success: true });
-        });
+      return res.status(200).json({
+        _id: user._id,
+        isAdmin: user.isAdmin,
+        email: user.email,
+        displayName: user.displayName,
+        avatar: user.avatar,
+        cover: user.cover,
+        subscribedUsers
       });
     });
-  } catch (err) {
-    res.status(404).json({ success: false, error: err.message });
-  }
+  })(req, res, next);
 };
 
-const changePassword = (req, res) => {
-  try {
-    const { errors, isValid } = validateChangePassword(req.body);
+// const changePassword = (req, res) => {
+//   try {
+//     const { errors, isValid } = validateChangePassword(req.body);
 
-    if (!isValid) {
-      return res.status(404).json(errors);
-    }
-    const { oldPassword, newPassword } = req.body;
-    const { user } = req;
+//     if (!isValid) {
+//       return res.status(404).json(errors);
+//     }
+//     const { oldPassword, newPassword } = req.body;
+//     const { user } = req;
 
-    user.comparePassword(oldPassword, (err, isMatch) => {
-      if (err) {
-        return res.status(401).json({ success: false, error: err.message });
-      }
-      if (!isMatch) {
-        errors.oldPassword = "Invalid old password";
-        return res.status(401).json(errors);
-      }
-      user.password = newPassword;
-      user
-        .save()
-        .then(() => {
-          res.status(200).json({ success: true });
-        })
-        .catch((err) => {
-          res.status(500).json({
-            success: false,
-            error: err.message,
-          });
-        });
-    });
-  } catch (err) {
-    res.status(404).json({ success: false, error: err.message });
-  }
-};
+//     user.comparePassword(oldPassword, (err, isMatch) => {
+//       if (err) {
+//         return res.status(401).json({ success: false, error: err.message });
+//       }
+//       if (!isMatch) {
+//         errors.oldPassword = "Invalid old password";
+//         return res.status(401).json(errors);
+//       }
+//       user.password = newPassword;
+//       user
+//         .save()
+//         .then(() => {
+//           res.status(200).json({ success: true });
+//         })
+//         .catch((err) => {
+//           res.status(500).json({
+//             success: false,
+//             error: err.message,
+//           });
+//         });
+//     });
+//   } catch (err) {
+//     res.status(404).json({ success: false, error: err.message });
+//   }
+// };
 
 const sendPasswordResetEmail = async (req, res) => {
   try {
     const { email } = req.params;
     const user = await User.findOne({ email }).exec();
+
     if (!user) {
       throw new Error("User does not exist");
     }
+
+    if (!user.password) {
+      throw new Error("Your account was registered using a sign-in provider")
+    }
+
     const secret = user.password + "-" + user.createdAt;
     const token = jwt.sign({ id: user._id }, secret, { expiresIn: 600 });
     const url = `${process.env.RESET_PASSWORD_URL}/${user._id}/${token}`;
@@ -136,7 +149,7 @@ const sendPasswordResetEmail = async (req, res) => {
 
     transporter.sendMail(emailTemplate, (err, info) => {
       if (err) {
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: "Something went wrong" });
       }
       res.status(200).json({ success: true });
     });
@@ -172,21 +185,17 @@ const receiveNewPassword = async (req, res) => {
 };
 
 const logout = (req, res) => {
-  try {
-    User.findOneAndUpdate({ _id: req.user._id }, { token: "" }, (err, doc) => {
-      if (err) return res.status(404).json({ success: false });
-      res.clearCookie("jwt_auth").status(200).json({ success: true });
-    });
-  } catch (err) {
-    res.status(404).json({ success: false, error: err.message });
-  }
+  req.logout();
+  res.status(200).json({
+    logoutSuccess: true,
+  });
 };
 
 module.exports = {
   register,
   login,
   logout,
-  changePassword,
+  // changePassword,
   sendPasswordResetEmail,
   receiveNewPassword,
   auth,

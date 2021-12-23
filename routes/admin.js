@@ -1,15 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-const { auth, admin } = require("../middlewares/auth");
+const { isLogged, isAdmin } = require("../middlewares/auth");
 const adminController = require("../controllers/admin");
 
-router.get("/getUsers", auth, admin, adminController.getUsers);
+router.get("/getUsers", isLogged, isAdmin, adminController.getUsers);
 
-router.get("/getVideos", auth, admin, adminController.getVideos);
+router.get("/getVideos", isLogged, isAdmin, adminController.getVideos);
 
-router.get("/deleteUser/:userId", auth, admin, adminController.deleteUser);
+router.get("/deleteUser/:userId", isLogged, isAdmin, adminController.deleteUser);
 
-router.get("/deleteVideo/:videoId", auth, admin, adminController.deleteVideo);
+router.get("/deleteVideo/:videoId", isLogged, isAdmin, adminController.deleteVideo);
 
 module.exports = router;

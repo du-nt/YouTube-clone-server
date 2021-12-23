@@ -6,7 +6,7 @@ const User = require("../models/User");
 
 const getUsers = async (req, res) => {
   const users = await User.find()
-    .select(" avatar displayName adminRole")
+    .select(" avatar displayName isAdmin")
     .exec();
   res.json(users);
 };
@@ -14,7 +14,7 @@ const getUsers = async (req, res) => {
 const getVideos = async (req, res) => {
   const videos = await Video.find()
     .select(" title thumbnail author ")
-    .populate({ path: "author", select: " displayName" })
+    .populate({ path: "author", select: "displayName" })
     .exec();
   res.json(videos);
 };

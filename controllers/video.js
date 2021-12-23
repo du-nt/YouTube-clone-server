@@ -34,7 +34,7 @@ const adminUpload = async (req, res) => {
 const recommendedVideos = async (req, res) => {
   const videos = await Video.find()
     .select(" -url -description -subtitle -updatedAt -__v")
-    .populate({ path: "author", select: " avatar userName displayName" })
+    .populate({ path: "author", select: " avatar displayName" })
     .sort("-createdAt")
     .lean()
     .exec();
@@ -44,7 +44,7 @@ const recommendedVideos = async (req, res) => {
 const getSubscriptionVideos = async (req, res) => {
   const subscribers = await Subscriber.find({
     userFrom: req.user.id,
-  }).populate({ path: "userTo", select: "avatar userName displayName" });
+  }).populate({ path: "userTo", select: "avatar displayName" });
 
   const subscribedUsers = subscribers.map(
     (subscriber) => subscriber.userTo._id
@@ -52,7 +52,7 @@ const getSubscriptionVideos = async (req, res) => {
 
   const videos = await Video.find({ author: { $in: subscribedUsers } })
     .select(" -url -description -subtitle -updatedAt -__v")
-    .populate({ path: "author", select: " avatar userName displayName" })
+    .populate({ path: "author", select: " avatar displayName" })
     .sort("-createdAt");
 
   const sixSubscribedUsers = subscribers
@@ -68,7 +68,7 @@ const getVideo = async (req, res) => {
       .select(" -thumbnail -duration -updatedAt -__v ")
       .populate({
         path: "author",
-        select: " avatar userName displayName",
+        select: " avatar displayName",
       })
       .lean()
       .exec();
@@ -213,7 +213,7 @@ const addComment = async (req, res) => {
     await newComment
       .populate({
         path: "author",
-        select: " avatar userName displayName",
+        select: " avatar displayName",
       })
       .execPopulate();
 
@@ -228,7 +228,7 @@ const getComments = async (req, res) => {
     const comments = await Comment.find({
       videoId: req.params.videoId,
     })
-      .populate({ path: "author", select: " avatar userName displayName" })
+      .populate({ path: "author", select: " avatar displayName" })
       .sort("-createdAt")
       .lean()
       .exec();
@@ -267,9 +267,9 @@ const addReply = async (req, res) => {
       .populate([
         {
           path: "author",
-          select: " avatar userName displayName",
+          select: " avatar displayName",
         },
-        { path: "responseTo", select: " userName displayName" },
+        { path: "responseTo", select: " displayName" },
       ])
       .execPopulate();
     res.json(newReply);
@@ -285,8 +285,8 @@ const getReplies = async (req, res) => {
       commentId: req.params.commentId,
     })
       .populate([
-        { path: "author", select: " avatar userName displayName" },
-        { path: "responseTo", select: " userName displayName" },
+        { path: "author", select: " avatar displayName" },
+        { path: "responseTo", select: "displayName" },
       ])
       .lean()
       .exec();
