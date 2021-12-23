@@ -61,7 +61,7 @@ const googleStrategyConfig = new GoogleStrategy(
 	{
 		clientID: process.env.GOOGLE_CLIENT_ID,
 		clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-		callbackURL: "http://localhost:8000/auth/google/callback",
+		callbackURL: "/auth/google/callback",
 	},
 	(req, accessToken, refreshToken, profile, done) => {
 		User.findOne(
@@ -110,7 +110,7 @@ const facebookStrategyConfig = new FacebookStrategy(
 	{
 		clientID: process.env.FACEBOOK_CLIENT_ID,
 		clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-		callbackURL: "http://localhost:8000/auth/facebook/callback",
+		callbackURL: "/auth/facebook/callback",
 		profileFields: ["id", "photos", "displayName", "email"],
 	},
 	(accessToken, refreshToken, profile, done) => {
