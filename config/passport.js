@@ -110,7 +110,7 @@ const facebookStrategyConfig = new FacebookStrategy(
 	{
 		clientID: process.env.FACEBOOK_CLIENT_ID,
 		clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
-		callbackURL: "/auth/facebook/callback",
+		callbackURL: "https://api-youtubeclone.herokuapp.com/auth/facebook/callback",
 		profileFields: ["id", "photos", "displayName", "email"],
 	},
 	(accessToken, refreshToken, profile, done) => {
