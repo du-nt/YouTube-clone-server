@@ -24,6 +24,10 @@ const getProfile = async (req, res) => {
 
     user.subscribersCount = otherSubscribe.length;
 
+    user.videosCount = await Video.countDocuments({
+      author: user._id.toString(),
+    });
+
     if (req.query.lgId) {
       const subscribe = await Subscriber.find({
         userTo: user._id.toString(),
@@ -150,6 +154,15 @@ const getSubscribedUsers = async (req, res) => {
     .populate({ path: "userTo", select: " avatar displayName" })
     .lean()
     .exec();
+
+  for (const user of users) {
+    user.userTo.subscribersCount = await Subscriber.countDocuments({
+      userTo: user.userTo._id.toString(),
+    });
+    user.userTo.videosCount = await Video.countDocuments({
+      author: user.userTo._id.toString(),
+    });
+  }
   res.status(200).json(users);
 };
 
@@ -168,7 +181,7 @@ const search = async (req, res) => {
       .exec(),
     Video.find({ title: regex })
       .select("author title thumbnail views duration createdAt")
-      .populate({ path: "author", select: "displayName" })
+      .populate({ path: "author", select: "displayName avatar" })
       .lean()
       .exec(),
     ,

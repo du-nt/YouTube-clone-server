@@ -3,6 +3,7 @@ const passport = require("passport");
 
 const User = require("../models/User");
 const Subscriber = require("../models/Subscriber");
+const Video = require("../models/Video");
 
 const validateRegisterInput = require("../validations/register");
 const validateLoginInput = require("../validations/login");
@@ -16,6 +17,15 @@ const auth = async (req, res) => {
     .populate({ path: "userTo", select: " avatar displayName" })
     .lean()
     .exec();
+
+  for (const subscribedUser of subscribedUsers) {
+    subscribedUser.userTo.subscribersCount = await Subscriber.countDocuments({
+      userTo: subscribedUser.userTo._id.toString(),
+    });
+    subscribedUser.userTo.videosCount = await Video.countDocuments({
+      author: subscribedUser.userTo._id.toString(),
+    });
+  }
 
   res.status(200).json({
     _id: req.user._id,
@@ -61,7 +71,7 @@ const login = (req, res, next) => {
     return res.status(404).json(errors);
   }
 
-  passport.authenticate("local", async(err, user, info) => {
+  passport.authenticate("local", async (err, user, info) => {
     if (err) {
       return next(err);
     }
@@ -71,10 +81,19 @@ const login = (req, res, next) => {
     }
 
     const subscribedUsers = await Subscriber.find({ userFrom: user.id })
-    .select("userTo")
-    .populate({ path: "userTo", select: " avatar displayName" })
-    .lean()
-    .exec();
+      .select("userTo")
+      .populate({ path: "userTo", select: " avatar displayName" })
+      .lean()
+      .exec();
+
+    for (const subscribedUser of subscribedUsers) {
+      subscribedUser.userTo.subscribersCount = await Subscriber.countDocuments({
+        userTo: subscribedUser.userTo._id.toString(),
+      });
+      subscribedUser.userTo.videosCount = await Video.countDocuments({
+        author: subscribedUser.userTo._id.toString(),
+      });
+    }
 
     req.logIn(user, function (err) {
       if (err) {

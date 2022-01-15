@@ -61,7 +61,7 @@ const googleStrategyConfig = new GoogleStrategy(
 	{
 		clientID: process.env.GOOGLE_CLIENT_ID,
 		clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-		callbackURL: "http://localhost:8000/auth/google/callback",
+		callbackURL: "https://api-youtubeclone.herokuapp.com/auth/google/callback",
 	},
 	(req, accessToken, refreshToken, profile, done) => {
 		User.findOne(

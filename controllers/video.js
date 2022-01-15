@@ -51,7 +51,7 @@ const getSubscriptionVideos = async (req, res) => {
   );
 
   const videos = await Video.find({ author: { $in: subscribedUsers } })
-    .select(" -url -description -subtitle -updatedAt -__v")
+    .select(" -url -subtitle -updatedAt -__v")
     .populate({ path: "author", select: " avatar displayName" })
     .sort("-createdAt");
 
@@ -81,6 +81,10 @@ const getVideo = async (req, res) => {
 
     video.subscribersCount = await Subscriber.countDocuments({
       userTo: video.author._id,
+    });
+
+    video.videosCount = await Video.countDocuments({
+      author: video.author._id,
     });
 
     video.commentsCount = await Comment.countDocuments({
@@ -116,8 +120,7 @@ const getVideo = async (req, res) => {
 
 const getRelatedVideos = async (req, res) => {
   const videos = await Video.find({ _id: { $ne: req.body._id } })
-    .limit(12)
-    .select(" -url -description -subtitle -updatedAt -createdAt -__v")
+    .select(" -url -description -subtitle -updatedAt  -__v")
     .populate({ path: "author", select: "displayName" })
     .sort("-createdAt")
     .lean()
