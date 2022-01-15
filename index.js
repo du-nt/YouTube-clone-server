@@ -18,7 +18,7 @@ const port = process.env.PORT || 8000;
 app.use(
   cors({
     credentials: true,
-    origin: true,
+    origin: 'https://youtubeclone-yaokaoya.netlify.app/',
   })
 );
 
