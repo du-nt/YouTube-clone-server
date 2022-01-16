@@ -15,15 +15,14 @@ require("./config/passport");
 
 const port = process.env.PORT || 8000;
 
+app.set('trust proxy', 1)
+
 app.use(
   cors({
     credentials: true,
     origin: 'https://youtubeclone-yaokaoya.netlify.app',
   })
 );
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 app.use(
   cookieSession({
@@ -35,10 +34,8 @@ app.use(
   })
 );
 
-app.use((req, res, next) => {
-  req["sessionCookies"].secure = true;
-  next();
-});
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
