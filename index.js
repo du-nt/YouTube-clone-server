@@ -89,7 +89,7 @@ app.get("/auth/google/callback", function (req, res, next) {
 app.get("/auth/facebook", isNotLogged, (req, res, next) => {
   req.session.returnTo = req.query.returnTo;
   next();
-}, passport.authenticate("facebook"));
+}, passport.authenticate("facebook", { scope: ['email'] }));
 
 app.get("/auth/facebook/callback", function (req, res, next) {
   passport.authenticate("facebook", function (err, user) {
