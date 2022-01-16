@@ -26,6 +26,7 @@ app.use(
   cookieSession({
     maxAge: 1209600000, // two weeks in milliseconds
     keys: [process.env.SECRET], //
+    sameSite: "none",
   })
 );
 
