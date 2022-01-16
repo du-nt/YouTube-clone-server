@@ -115,43 +115,43 @@ const facebookStrategyConfig = new FacebookStrategy(
 	},
 	(accessToken, refreshToken, profile, done) => {
 		console.log(profile)
-		User.findOne(
-			{ facebookId: profile.id, verify: true },
-			(err, existingUser) => {
-				if (err) {
-					return done(err);
-				}
-				if (existingUser) {
-					return done(null, existingUser);
-				}
-				User.findOne(
-					{
-						email: profile.emails[0].value,
-					},
-					(err, existingEmailUser) => {
-						if (err) {
-							return done(err);
-						}
-						if (existingEmailUser) {
-							existingEmailUser.facebookId = profile.id;
-							existingEmailUser.save((err) => {
-								done(err, existingEmailUser);
-							});
-						} else {
-							const user = new User({
-								email: profile.emails[0].value,
-								facebookId: profile.id,
-								displayName: profile.displayName,
-								avatar: profile.photos[0].value
-							});
-							user.save((err) => {
-								done(err, user);
-							});
-						}
-					}
-				);
-			}
-		);
+		// User.findOne(
+		// 	{ facebookId: profile.id, verify: true },
+		// 	(err, existingUser) => {
+		// 		if (err) {
+		// 			return done(err);
+		// 		}
+		// 		if (existingUser) {
+		// 			return done(null, existingUser);
+		// 		}
+		// 		User.findOne(
+		// 			{
+		// 				email: profile.emails[0].value,
+		// 			},
+		// 			(err, existingEmailUser) => {
+		// 				if (err) {
+		// 					return done(err);
+		// 				}
+		// 				if (existingEmailUser) {
+		// 					existingEmailUser.facebookId = profile.id;
+		// 					existingEmailUser.save((err) => {
+		// 						done(err, existingEmailUser);
+		// 					});
+		// 				} else {
+		// 					const user = new User({
+		// 						email: profile.emails[0].value,
+		// 						facebookId: profile.id,
+		// 						displayName: profile.displayName,
+		// 						avatar: profile.photos[0].value
+		// 					});
+		// 					user.save((err) => {
+		// 						done(err, user);
+		// 					});
+		// 				}
+		// 			}
+		// 		);
+		// 	}
+		// );
 	}
 );
 passport.use("facebook", facebookStrategyConfig);
