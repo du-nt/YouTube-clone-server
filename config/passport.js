@@ -114,6 +114,7 @@ const facebookStrategyConfig = new FacebookStrategy(
 		profileFields: ["id", "photos", "displayName", "email"],
 	},
 	(accessToken, refreshToken, profile, done) => {
+		console.log(profile)
 		User.findOne(
 			{ facebookId: profile.id, verify: true },
 			(err, existingUser) => {
