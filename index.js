@@ -22,6 +22,9 @@ app.use(
   })
 );
 
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use(
   cookieSession({
     maxAge: 1209600000, // two weeks in milliseconds
@@ -36,9 +39,6 @@ app.use((req, res, next) => {
   req["sessionCookies"].secure = true;
   next();
 });
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
