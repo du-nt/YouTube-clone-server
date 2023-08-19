@@ -20,7 +20,7 @@ app.set('trust proxy', 1)
 app.use(
   cors({
     credentials: true,
-    origin: 'https://youtubeclone-yaokaoya.netlify.app',
+    origin: process.env.FE_DOMAIN,
   })
 );
 
