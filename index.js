@@ -21,10 +21,6 @@ app.use(
   cors({
     credentials: true,
     origin: "*",
-    headers: {
-      "Access-Control-Allow-Origin": "https://youtube-clone-client.onrender.com", // incorrect
-      "Access-Control-Allow-Credentials": true // incorrect
-    },
   })
 );
 
