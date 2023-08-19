@@ -20,7 +20,7 @@ app.set('trust proxy', 1)
 app.use(
   cors({
     credentials: true,
-    origin: process.env.FE_DOMAIN,
+    origin: 'https://you-tube-clone-client.vercel.app/',
   })
 );
 
