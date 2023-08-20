@@ -163,7 +163,7 @@ const sendPasswordResetEmail = async (req, res) => {
 
     const secret = user.password + "-" + user.createdAt;
     const token = jwt.sign({ id: user._id }, secret, { expiresIn: 600 });
-    const url = `${process.env.RESET_PASSWORD_URL}/${user._id}/${token}`;
+    const url = `${process.env.CLIENT_URL}/password/reset/${user._id}/${token}`;
     const emailTemplate = resetPasswordTemplate(user, url);
 
     transporter.sendMail(emailTemplate, (err, info) => {
